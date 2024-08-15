@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 15 20:26:11 2024
+
+@author: user
+"""
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #e0f7fa; 
+            color: #37474f; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background-color: #ffffff; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #00796b; 
+        }
+        .result { 
+            font-size: 24px; 
+            text-align: center; 
+            margin-top: 20px; 
+        }
+        .home-link { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+        }
+        .home-link a { 
+            text-decoration: none; 
+            color: #00796b; 
+            font-size: 18px; 
+        }
+        .home-link a:hover { 
+            text-decoration: underline; 
+        }
+        .high-risk { 
+            color: #d32f2f;
+            font-weight: bold; 
+        }
+        .low-risk { 
+            color: #388e3c; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prediction Result</h1>
+        <div class="result">
+            Probability of KDSS: {{ prediction }}<br>
+            Best Threshold: {{ best_threshold }}<br>
+            <span class="{{ 'high-risk' if risk_color == 'red' else 'low-risk' }}">{{ risk_level }}</span>
+        </div>
+        <div class="home-link">
+            <a href="/">Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

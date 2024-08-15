@@ -1,0 +1,92 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May 29 18:41:58 2024
+
+@author: user
+"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kawasaki Disease Shock Syndrome Prediction System</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #e0f7fa; 
+            color: #37474f; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background-color: #ffffff; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #00796b; 
+        }
+        form { 
+            display: flex; 
+            flex-wrap: wrap; 
+        }
+        .form-group { 
+            width: 100%; 
+            margin-bottom: 20px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #546e7a; 
+        }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #00796b; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #004d40;
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #00796b; 
+            border: none; 
+            border-radius: 6px; 
+            color: white; 
+            font-size: 18px; 
+            cursor: pointer; 
+        }
+        button:hover {
+            background-color: #004d40;
+        }
+        .annotation { 
+            font-size: 0.95em; 
+            color: #455a64; 
+            margin-top: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kawasaki Disease Shock Syndrome Prediction System</h1>
+        <form action="/predict" method="post">
+            {% for feature in features %}
+            <div class="form-group">
+                <label for="{{ feature }}">{{ feature }}</label>
+                <input type="text" id="{{ feature }}" name="{{ feature }}" required>
+                <div class="annotation">{{ annotations[feature] }}</div>
+            </div>
+            {% endfor %}
+            <button type="submit">Predict</button>
+        </form>
+    </div>
+</body>
+</html>
