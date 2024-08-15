@@ -48,11 +48,11 @@ def cross_validated_youden_index(X, y, model, cv=5):
     return np.mean(thresholds), np.mean(youden_indices)
 
 def train_model():
-  #   url = 'https://your-dataset-url.csv'  
+    url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'  
   # # 替换为您的数据集URL
-  #   response = requests.get(url)
-  #   data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
-    data = pd.read_csv("C:/Users/user/Desktop/Python/ML/master/KDSS21.csv", encoding='gbk')
+    response = requests.get(url)
+    data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
+    #data = pd.read_csv("C:/Users/user/Desktop/Python/ML/master/KDSS21.csv", encoding='gbk')
     X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]  # 根据您的特征
     y = data['KDSS']  # 
 
