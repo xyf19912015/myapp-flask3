@@ -1,0 +1,11 @@
+flask
+flask-bootstrap
+pandas
+numpy
+xgboost
+scikit-learn
+imbalanced-learn
+shap
+joblib
+requests
+waitress
