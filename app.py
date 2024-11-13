@@ -14,9 +14,11 @@ from xgboost import XGBClassifier
 import requests
 import io
 import random
+import os
 
 app = Flask(__name__)
 
+# Set global random seed for reproducibility
 random_state = 42
 random.seed(random_state)
 np.random.seed(random_state)
@@ -47,57 +49,57 @@ def cross_validated_youden_index(X, y, model, cv=5):
     
     return np.mean(thresholds), np.mean(youden_indices)
 
-try:
-    response = requests.get(url)
-    response.raise_for_status()  # 检查请求是否成功
-    data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
-except requests.exceptions.HTTPError as e:
-    print(f"HTTP error occurred: {e}")
-except pd.errors.ParserError as e:
-    print(f"Parser error: {e}")
-except Exception as e:
-    print(f"An error occurred: {e}")
-
 def train_model():
     url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'  
-  # # 替换为您的数据集URL
-   import requests
-    
-    response = requests.get(url)
-    data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
-    #data = pd.read_csv("C:/Users/user/Desktop/Python/ML/master/KDSS21.csv", encoding='gbk')
-    X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]  # 根据您的特征
-    y = data['KDSS']  # 
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check if the request was successful
+        data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+        # Define features and labels
+        X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]  # Your features
+        y = data['KDSS']  # Your target variable
 
-    smote = SMOTE(sampling_strategy=0.5, random_state=random_state)
-    X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
+        # Scale features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-    xgb_classifier = XGBClassifier(random_state=random_state)
+        # Apply SMOTE
+        smote = SMOTE(sampling_strategy=0.5, random_state=random_state)
+        X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
 
-    param_grid = {
-        'n_estimators': [300],
-        'learning_rate': [0.05],
-        'max_depth': [5],
-        'min_child_weight': [1],
-        'gamma': [0.1],
-        'subsample': [0.6],
-        'colsample_bytree': [1.0],
-        'reg_lambda': [1.0],
-        'reg_alpha': [0.1]
-    }
+        # Train the XGBoost classifier
+        xgb_classifier = XGBClassifier(random_state=random_state)
 
-    grid_search = GridSearchCV(estimator=xgb_classifier, param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
-    grid_search.fit(X_resampled, y_resampled)
+        # Grid search parameters
+        param_grid = {
+            'n_estimators': [300],
+            'learning_rate': [0.05],
+            'max_depth': [5],
+            'min_child_weight': [1],
+            'gamma': [0.1],
+            'subsample': [0.6],
+            'colsample_bytree': [1.0],
+            'reg_lambda': [1.0],
+            'reg_alpha': [0.1]
+        }
 
-    best_xgb = grid_search.best_estimator_
+        grid_search = GridSearchCV(estimator=xgb_classifier, param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
+        grid_search.fit(X_resampled, y_resampled)
 
-    best_threshold, best_youden_index = cross_validated_youden_index(X_resampled, y_resampled, best_xgb)
+        best_xgb = grid_search.best_estimator_
 
-    return scaler, best_xgb, X.columns, best_threshold, best_youden_index
-    print(best_threshold)
+        best_threshold, best_youden_index = cross_validated_youden_index(X_resampled, y_resampled, best_xgb)
+
+        return scaler, best_xgb, X.columns, best_threshold, best_youden_index
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error occurred: {e}")
+    except pd.errors.ParserError as e:
+        print(f"Parser error: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# Train the model and get the parameters
 scaler, best_xgb, feature_names, best_threshold, best_youden_index = train_model()
 
 @app.route('/')
@@ -121,12 +123,11 @@ def predict():
                 value = float(request.form[feature])
                 input_features.append(value)
             else:
-                input_features.append(0.0)  # 如果缺少特征，用0填充
+                input_features.append(0.0)  # If feature is missing, fill with 0
     except KeyError as e:
         return f"Error: Missing input for feature: {e.args[0]}"
 
     input_df = pd.DataFrame([input_features], columns=feature_names)
-
     input_scaled = scaler.transform(input_df)
 
     prediction_proba = best_xgb.predict_proba(input_scaled)[:, 1][0]
@@ -137,4 +138,4 @@ def predict():
     return render_template('result.html', prediction=prediction_rounded, youden_index=best_youden_index, best_threshold=best_threshold, risk_level=risk_level, risk_color=risk_color)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=True)
