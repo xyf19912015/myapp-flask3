@@ -50,6 +50,21 @@ def cross_validated_youden_index(X, y, model, cv=5):
 def train_model():
     url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'  
   # # 替换为您的数据集URL
+   import requests
+
+try:
+    response = requests.get(url)
+    response.raise_for_status()  # 检查请求是否成功
+    data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
+except requests.exceptions.HTTPError as e:
+    print(f"HTTP error occurred: {e}")
+except pd.errors.ParserError as e:
+    print(f"Parser error: {e}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+    
+
+    
     response = requests.get(url)
     data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
     #data = pd.read_csv("C:/Users/user/Desktop/Python/ML/master/KDSS21.csv", encoding='gbk')
