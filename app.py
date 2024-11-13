@@ -50,28 +50,33 @@ def cross_validated_youden_index(X, y, model, cv=5):
     return np.mean(thresholds), np.mean(youden_indices)
 
 def train_model():
-    url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'  
+    url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Check if the request was successful
-        data = pd.read_csv(io.StringIO(response.content.decode('utf-8')), encoding='gbk')
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # 检查请求是否成功
 
-        # Define features and labels
-        X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]  # Your features
-        y = data['KDSS']  # Your target variable
+        content = response.content.decode('utf-8')
 
-        # Scale features
+        # 检查内容是否为HTML
+        if '<!DOCTYPE html>' in content or '<html>' in content:
+            print("The content retrieved is an HTML page, not a CSV file.")
+            return None, None, None, None, None
+
+        data = pd.read_csv(io.StringIO(content), encoding='gbk')
+
+        # 以下是您原来的模型训练代码
+        X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]
+        y = data['KDSS']
+
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
-        # Apply SMOTE
         smote = SMOTE(sampling_strategy=0.5, random_state=random_state)
         X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
 
-        # Train the XGBoost classifier
         xgb_classifier = XGBClassifier(random_state=random_state)
 
-        # Grid search parameters
         param_grid = {
             'n_estimators': [300],
             'learning_rate': [0.05],
@@ -94,10 +99,13 @@ def train_model():
         return scaler, best_xgb, X.columns, best_threshold, best_youden_index
     except requests.exceptions.HTTPError as e:
         print(f"HTTP error occurred: {e}")
+        return None, None, None, None, None
     except pd.errors.ParserError as e:
         print(f"Parser error: {e}")
+        return None, None, None, None, None
     except Exception as e:
         print(f"An error occurred: {e}")
+        return None, None, None, None, None
 
 # Train the model and get the parameters
 scaler, best_xgb, feature_names, best_threshold, best_youden_index = train_model()
