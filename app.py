@@ -65,8 +65,8 @@ def train_model():
 
         data = pd.read_csv(io.StringIO(content), encoding='gbk')
 
-        # 以下是您原来的模型训练代码
-        X = data[['THLC', 'N/L', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]
+        # 训练代码
+        X = data[['THLC', 'NLR', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]
         y = data['KDSS']
 
         scaler = StandardScaler()
@@ -75,7 +75,7 @@ def train_model():
         smote = SMOTE(sampling_strategy=0.5, random_state=random_state)
         X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
 
-        # 使用 LightGBM 替代 XGBoost
+        # 使用 LightGBM 
         lgb_classifier = lgb.LGBMClassifier(random_state=random_state)
 
         # 更新超参数设置
