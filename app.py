@@ -116,7 +116,7 @@ scaler, best_lgb, feature_names, best_threshold, best_youden_index = train_model
 def home():
     annotations = {
         'THLC': 'Total Helper Lymphocyte Count,/mL',
-        'N/L': 'Neutrophil to Lymphocyte Ratio',
+        'NLR': 'Neutrophil to Lymphocyte Ratio',
         'GLB': 'Globulin level, g/L',
         'WBC': 'White Blood Cell count, 10^9/L',
         'CRP': 'C-Reactive Protein, mg/L',
