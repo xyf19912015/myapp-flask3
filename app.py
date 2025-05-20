@@ -40,7 +40,7 @@ def calculate_f1_optimal_threshold(X, y, model):
     return best_threshold
 
 def train_model():
-    url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'
+    url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS31.csv'
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers)
