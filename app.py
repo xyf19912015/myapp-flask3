@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, cross_val_predict
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve
 import lightgbm as lgb
 import requests
 import io
@@ -23,20 +23,20 @@ random_state = 42
 random.seed(random_state)
 np.random.seed(random_state)
 
-def calculate_f1_optimal_threshold(X, y, model):
-    """Calculate the optimal threshold based on F1-score using cross-validation."""
+def calculate_youden_optimal_threshold(X, y, model):
+    """Calculate the optimal threshold based on Youden's Index using cross-validation."""
     # Use cross-validation to get predicted probabilities
     y_proba = cross_val_predict(model, X, y, cv=5, method='predict_proba')[:, 1]
     
-    # Calculate precision, recall, and thresholds
-    precision, recall, thresholds = precision_recall_curve(y, y_proba)
+    # Calculate ROC curve
+    fpr, tpr, thresholds = roc_curve(y, y_proba)
     
-    # Compute F1-scores for each threshold
-    f1_scores = 2 * (precision * recall) / (precision + recall)
-    f1_scores = np.nan_to_num(f1_scores)  # Replace NaN with 0
+    # Compute Youden's Index for each threshold
+    youden_index = tpr - fpr
     
-    # Find the threshold that maximizes F1-score
-    best_threshold = thresholds[np.argmax(f1_scores)]
+    # Find the threshold that maximizes Youden's Index
+    optimal_idx = np.argmax(youden_index)
+    best_threshold = thresholds[optimal_idx]
     return best_threshold
 
 def train_model():
@@ -89,9 +89,9 @@ def train_model():
 
         best_lgb = grid_search.best_estimator_
 
-        # Calculate optimal threshold based on F1-score
-        best_threshold = calculate_f1_optimal_threshold(X_scaled, y, best_lgb)
-
+        # Calculate optimal threshold based on Youden's Index
+        best_threshold = calculate_youden_optimal_threshold(X_scaled, y, best_lgb)
+        best_threshold = round(best_threshold, 4)
         return scaler, best_lgb, X.columns, best_threshold
     except requests.exceptions.HTTPError as e:
         print(f"HTTP error occurred: {e}")
