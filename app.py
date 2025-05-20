@@ -8,9 +8,9 @@ from flask import Flask, request, render_template
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import SMOTE
-from sklearn.model_selection import GridSearchCV
-import lightgbm as lgb  # 导入 LightGBM 包
+from sklearn.model_selection import GridSearchCV, cross_val_predict
+from sklearn.metrics import precision_recall_curve
+import lightgbm as lgb
 import requests
 import io
 import random
@@ -23,62 +23,54 @@ random_state = 42
 random.seed(random_state)
 np.random.seed(random_state)
 
-def calculate_youden_index(y_true, y_proba):
-    from sklearn.metrics import roc_curve
-    fpr, tpr, thresholds = roc_curve(y_true, y_proba)
-    youden_index = tpr - fpr
-    best_threshold = thresholds[np.argmax(youden_index)]
-    best_youden_index = np.max(youden_index)
-    return best_threshold, best_youden_index
-
-def cross_validated_youden_index(X, y, model, cv=5):
-    from sklearn.model_selection import StratifiedKFold
-    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
-    thresholds = []
-    youden_indices = []
+def calculate_f1_optimal_threshold(X, y, model):
+    """Calculate the optimal threshold based on F1-score using cross-validation."""
+    # Use cross-validation to get predicted probabilities
+    y_proba = cross_val_predict(model, X, y, cv=5, method='predict_proba')[:, 1]
     
-    for train_index, test_index in skf.split(X, y):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
-        
-        model.fit(X_train, y_train)
-        y_proba = model.predict_proba(X_test)[:, 1]
-        best_threshold, best_youden_index = calculate_youden_index(y_test, y_proba)
-        thresholds.append(best_threshold)
-        youden_indices.append(best_youden_index)
+    # Calculate precision, recall, and thresholds
+    precision, recall, thresholds = precision_recall_curve(y, y_proba)
     
-    return np.mean(thresholds), np.mean(youden_indices)
+    # Compute F1-scores for each threshold
+    f1_scores = 2 * (precision * recall) / (precision + recall)
+    f1_scores = np.nan_to_num(f1_scores)  # Replace NaN with 0
+    
+    # Find the threshold that maximizes F1-score
+    best_threshold = thresholds[np.argmax(f1_scores)]
+    return best_threshold
 
 def train_model():
     url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS21.csv'
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers)
-        response.raise_for_status()  # 检查请求是否成功
+        response.raise_for_status()  # Check if the request was successful
 
         content = response.content.decode('utf-8')
 
-        # 检查内容是否为HTML
+        # Check if content is HTML instead of CSV
         if '<!DOCTYPE html>' in content or '<html>' in content:
             print("The content retrieved is an HTML page, not a CSV file.")
-            return None, None, None, None, None
+            return None, None, None, None
 
         data = pd.read_csv(io.StringIO(content), encoding='gbk')
 
-        # 训练代码
-        X = data[['THLC', 'NLR', 'GLB', 'WBC', 'CRP', 'NT-proBNP']]
+        # Prepare features and target
+        X = data[['T cell%', 'NLR', 'IL-6', 'CRP', 'NT-proBNP']]
         y = data['KDSS']
 
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
-        smote = SMOTE(sampling_strategy=0.5, random_state=random_state)
-        X_resampled, y_resampled = smote.fit_resample(X_scaled, y)
+        # Calculate scale_pos_weight for class imbalance
+        neg_count = (y == 0).sum()
+        pos_count = (y == 1).sum()
+        scale_pos_weight = neg_count / pos_count if pos_count > 0 else 1
 
-        # 使用 LightGBM 
-        lgb_classifier = lgb.LGBMClassifier(random_state=random_state)
+        # Initialize LightGBM classifier with scale_pos_weight
+        lgb_classifier = lgb.LGBMClassifier(random_state=random_state, scale_pos_weight=scale_pos_weight)
 
-        # 更新超参数设置
+        # Define hyperparameter grid
         param_grid = {
             'n_estimators': [200],
             'learning_rate': [0.05],
@@ -91,26 +83,28 @@ def train_model():
             'reg_alpha': [1.0]
         }
 
+        # Perform grid search
         grid_search = GridSearchCV(estimator=lgb_classifier, param_grid=param_grid, cv=5, scoring='roc_auc', n_jobs=-1)
-        grid_search.fit(X_resampled, y_resampled)
+        grid_search.fit(X_scaled, y)
 
         best_lgb = grid_search.best_estimator_
 
-        best_threshold, best_youden_index = cross_validated_youden_index(X_resampled, y_resampled, best_lgb)
+        # Calculate optimal threshold based on F1-score
+        best_threshold = calculate_f1_optimal_threshold(X_scaled, y, best_lgb)
 
-        return scaler, best_lgb, X.columns, best_threshold, best_youden_index
+        return scaler, best_lgb, X.columns, best_threshold
     except requests.exceptions.HTTPError as e:
         print(f"HTTP error occurred: {e}")
-        return None, None, None, None, None
+        return None, None, None, None
     except pd.errors.ParserError as e:
         print(f"Parser error: {e}")
-        return None, None, None, None, None
+        return None, None, None, None
     except Exception as e:
         print(f"An error occurred: {e}")
-        return None, None, None, None, None
+        return None, None, None, None
 
 # Train the model and get the parameters
-scaler, best_lgb, feature_names, best_threshold, best_youden_index = train_model()
+scaler, best_lgb, feature_names, best_threshold = train_model()
 
 @app.route('/')
 def home():
@@ -145,7 +139,7 @@ def predict():
     risk_color = "red" if prediction_proba > best_threshold else "green"
     prediction_rounded = round(prediction_proba, 4)
 
-    return render_template('result.html', prediction=prediction_rounded, youden_index=best_youden_index, best_threshold=best_threshold, risk_level=risk_level, risk_color=risk_color)
+    return render_template('result.html', prediction=prediction_rounded, best_threshold=best_threshold, risk_level=risk_level, risk_color=risk_color)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=True)
