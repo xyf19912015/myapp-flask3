@@ -109,10 +109,9 @@ scaler, best_lgb, feature_names, best_threshold = train_model()
 @app.route('/')
 def home():
     annotations = {
-        'THLC': 'Total Helper Lymphocyte Count,/mL',
+        'T cell%': 'T cell percentage, %',
         'NLR': 'Neutrophil to Lymphocyte Ratio',
-        'GLB': 'Globulin level, g/L',
-        'WBC': 'White Blood Cell count, 10^9/L',
+        'IL-6': 'Interleukin-6 level, pg/mL',
         'CRP': 'C-Reactive Protein, mg/L',
         'NT-proBNP': 'N-terminal pro B-type Natriuretic Peptide, pg/mL'
     }
