@@ -39,7 +39,7 @@ def train_model():
         data = pd.read_csv(io.StringIO(content), encoding='gbk')
 
         # Prepare features and target
-        X = data[['CD3+ %', 'NLR', 'IL-6', 'CRP', 'NT-proBNP']]
+        X = data[['CD3+%', 'NLR', 'IL-6', 'CRP', 'NT-proBNP']]
         y = data['KDSS']
 
         scaler = StandardScaler()
@@ -91,7 +91,7 @@ scaler, best_lgb, feature_names, best_threshold = train_model()
 @app.route('/')
 def home():
     annotations = {
-        'CD3+ %': 'CD3+ lymphocyte percentage, %',
+        'CD3+%': 'CD3+ lymphocyte percentage, %',
         'NLR': 'Neutrophil to Lymphocyte Ratio',
         'IL-6': 'Interleukin-6 level, pg/mL',
         'CRP': 'C-Reactive Protein, mg/L',
