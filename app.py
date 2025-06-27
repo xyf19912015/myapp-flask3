@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, cross_val_predict
-from sklearn.metrics import roc_curve
 import lightgbm as lgb
 import requests
 import io
@@ -22,22 +21,6 @@ app = Flask(__name__)
 random_state = 42
 random.seed(random_state)
 np.random.seed(random_state)
-
-def calculate_youden_optimal_threshold(X, y, model):
-    """Calculate the optimal threshold based on Youden's Index using cross-validation."""
-    # Use cross-validation to get predicted probabilities
-    y_proba = cross_val_predict(model, X, y, cv=5, method='predict_proba')[:, 1]
-    
-    # Calculate ROC curve
-    fpr, tpr, thresholds = roc_curve(y, y_proba)
-    
-    # Compute Youden's Index for each threshold
-    youden_index = tpr - fpr
-    
-    # Find the threshold that maximizes Youden's Index
-    optimal_idx = np.argmax(youden_index)
-    best_threshold = thresholds[optimal_idx]
-    return best_threshold
 
 def train_model():
     url = 'https://raw.githubusercontent.com/xyf19912015/myapp-flask3/main/KDSS31.csv'
@@ -56,7 +39,7 @@ def train_model():
         data = pd.read_csv(io.StringIO(content), encoding='gbk')
 
         # Prepare features and target
-        X = data[['T cell%', 'NLR', 'IL-6', 'CRP', 'NT-proBNP']]
+        X = data[['CD3+ %', 'NLR', 'IL-6', 'CRP', 'NT-proBNP']]
         y = data['KDSS']
 
         scaler = StandardScaler()
@@ -89,10 +72,9 @@ def train_model():
 
         best_lgb = grid_search.best_estimator_
 
-        # Calculate optimal threshold based on Youden's Index
-        best_threshold = calculate_youden_optimal_threshold(X_scaled, y, best_lgb)
-        best_threshold = round(best_threshold, 4)
-        return scaler, best_lgb, X.columns, best_threshold
+        # Use fixed threshold instead of calculated one
+        best_threshold = 0.0656  # Fixed optimal threshold
+        return scaler, best_lgb, X.columns, round(best_threshold, 4)
     except requests.exceptions.HTTPError as e:
         print(f"HTTP error occurred: {e}")
         return None, None, None, None
@@ -109,7 +91,7 @@ scaler, best_lgb, feature_names, best_threshold = train_model()
 @app.route('/')
 def home():
     annotations = {
-        'T cell%': 'T cell percentage, %',
+        'CD3+ %': 'CD3+ lymphocyte percentage, %',
         'NLR': 'Neutrophil to Lymphocyte Ratio',
         'IL-6': 'Interleukin-6 level, pg/mL',
         'CRP': 'C-Reactive Protein, mg/L',
