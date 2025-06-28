@@ -55,15 +55,15 @@ def train_model():
 
         # Define hyperparameter grid
         param_grid = {
-            'n_estimators': [200],
+            'n_estimators': [100],
             'learning_rate': [0.05],
-            'max_depth': [7],
+            'max_depth': [5],
             'num_leaves': [30],
-            'min_child_samples': [10],
-            'subsample': [0.6],
-            'colsample_bytree': [0.6],
-            'reg_lambda': [0.1],
-            'reg_alpha': [1.0]
+            'min_child_samples': [3],
+            'subsample': [1.0],
+            'colsample_bytree': [1.0],
+            'reg_lambda': [0],
+            'reg_alpha': [0]
         }
 
         # Perform grid search
